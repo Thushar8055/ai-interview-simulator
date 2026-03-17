@@ -59,7 +59,20 @@ difficulty = st.sidebar.selectbox(
     ["Easy", "Medium", "Hard"]
 )
 
-# 🔄 RESET
+# 🔁 AUTO RESET WHEN SETTINGS CHANGE
+if "prev_role" not in st.session_state:
+    st.session_state.prev_role = role
+    st.session_state.prev_difficulty = difficulty
+
+if role != st.session_state.prev_role or difficulty != st.session_state.prev_difficulty:
+    st.session_state.chat_history = []
+    st.session_state.score = 0
+    st.session_state.questions = 0
+    st.session_state.scores_list = []
+    st.session_state.prev_role = role
+    st.session_state.prev_difficulty = difficulty
+
+# 🔄 MANUAL RESET
 if st.sidebar.button("🔄 Restart"):
     st.session_state.chat_history = []
     st.session_state.score = 0
@@ -82,8 +95,16 @@ def ai_interviewer(user_input):
     You are an AI Interviewer for {role}.
     Difficulty: {difficulty}
 
-    Ask questions, evaluate answers (/10), give feedback,
-    and continue interview.
+    Rules:
+    - Ask interview questions
+    - Evaluate answers
+    - ALWAYS give score in format: 7/10
+    - Give feedback
+    - Ask next question
+
+    If user asks doubts:
+    - Explain clearly
+    - Continue interview
     """
 
     messages = [{"role": "system", "content": system_prompt}]
@@ -111,7 +132,7 @@ def ai_interviewer(user_input):
 
     reply = data["choices"][0]["message"]["content"]
 
-    # extract score
+    # 🎯 Extract score
     match = re.search(r'(\d+)/10', reply)
     if match:
         score = int(match.group(1))
@@ -134,11 +155,12 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# 🛑 END BUTTON (FIXED POSITION)
-if st.session_state.questions > 0:
+# 🛑 END BUTTON (FIXED)
+end_clicked = False
+if len(st.session_state.chat_history) > 1:
     end_clicked = st.button("🛑 End Interview & Generate Report")
 
-# ⌨️ INPUT (AFTER BUTTON)
+# ⌨️ INPUT
 user_input = st.chat_input("Type your answer...")
 
 if user_input:
@@ -160,21 +182,20 @@ if len(st.session_state.scores_list) > 0:
     st.subheader("📈 Score Trend")
     st.line_chart(st.session_state.scores_list)
 
-# 📊 SIDEBAR
+# 📊 SIDEBAR STATS
 if st.session_state.questions > 0:
     st.sidebar.markdown("### 📊 Performance")
     st.sidebar.write(f"Score: {st.session_state.score}")
     st.sidebar.write(f"Questions: {st.session_state.questions}")
 
-# 📄 FINAL REPORT (FIXED)
-if "end_clicked" in locals() and end_clicked:
-
+# 📄 FINAL REPORT
+if end_clicked:
     report_prompt = f"""
     Based on this interview:
 
     {st.session_state.chat_history}
 
-    Give:
+    Provide:
     - Overall performance
     - Strengths
     - Weaknesses
