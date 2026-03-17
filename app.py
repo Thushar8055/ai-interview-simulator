@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # 🔑 HIDE API KEY (use secrets in production)
-API_KEY = "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"
+API_KEY = st.secrets["GROQ_API_KEY"]
 
 # 🎨 PREMIUM UI STYLE
 st.markdown("""
